@@ -13,7 +13,7 @@ const FILES = new Set();
 const FILES_ADDED = new Set();
 const FILES_MODIFIED = new Set();
 const FILES_REMOVED = new Set();
-const FILES_RENAMED = new Set();
+const FILES_RENAMED = new Array();
 const FILES_DETAIL = {
 	"timestamp": Date.now(),
 	"status": {
@@ -163,7 +163,7 @@ async function processCommitData(result) {
 	FILES_DETAIL["status"]['added'].push(Array.from(FILES_ADDED.values()));
 	FILES_DETAIL["status"]['modified'].push(Array.from(FILES_MODIFIED.values()));
 	FILES_DETAIL["status"]['removed'].push(Array.from(FILES_REMOVED.values()));
-	FILES_DETAIL["status"]['renamed'].push(Array.from(FILES_RENAMED.values()));
+	FILES_DETAIL["status"]['renamed']= FILES_RENAMED;
 
 }
 
@@ -171,7 +171,7 @@ function processRenamedFile(prev_file, new_file) {
 	FILES.delete(prev_file) && FILES.add(new_file);
 	FILES_ADDED.delete(prev_file) && FILES_ADDED.add(new_file);
 	FILES_MODIFIED.delete(prev_file) && FILES_MODIFIED.add(new_file);
-	FILES_RENAMED.add({ file: { filename: new_file, previous_filename: prev_file } });
+	FILES_RENAMED.push({ file: { filename: new_file, previous_filename: prev_file }});
 }
 
 function toJSON(value, pretty = true) {
