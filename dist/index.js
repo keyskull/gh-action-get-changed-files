@@ -7832,7 +7832,7 @@ function renamedAction(files_detail, metadata) {
           
           metadata['articles'][uid]['updated_timestamp'] = Date.now();
 
-          metadata['articles'][uuidv5(value['file'].filename, uuidv5.URL)] = metadata['articles'][uid];
+          metadata['articles'][md5(value['file'].filename)] = metadata['articles'][uid];
           delete metadata['articles'][uid];
           logging('renamedAction', 'recorded a rename file frome' + value['file'].previous_filename + 'to' + value['file'].filename);
         }
