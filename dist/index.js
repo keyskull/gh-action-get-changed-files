@@ -7701,8 +7701,10 @@ function unrecordedFileAction(file_name, metadata) {
     else metadata['articles'][uid]['revise_time'] = 1;
   }
   else {
+    const pathArray = file_name.split('/');
+    const title = pathArray[pathArray.length - 1].split('.')
     const json = ' {"path":"' + file_name + '"' +
-      ',"title": "' + file_name + '"' +
+      ',"title": "' + title[0] + '"' +
       ',"revise_time": 0 ' +
       ',"authors": [] ' +
       ',"tags": [] ' +
@@ -7729,9 +7731,10 @@ function createdAction(files_detail, metadata) {
 
   files_detail['status']["added"].forEach(function (value) {
     if (value != '') {
-
+      const pathArray = value.split('/');
+      const title = pathArray[pathArray.length - 1].split('.')
       const json = '{"' + md5(value) + '" : {"path":"' + value + '"' +
-        ',"title": "' + value + '"' +
+        ',"title": "' + title[0] + '"' +
         ',"revise_time": 0 ' +
         ',"authors": [] ' +
         ',"tags": [] ' +
