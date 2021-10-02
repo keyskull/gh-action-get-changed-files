@@ -160,9 +160,9 @@ async function processCommitData(result) {
 		}
 	});
 
-	FILES_DETAIL["status"]['added'].push(Array.from(FILES_ADDED.values()));
-	FILES_DETAIL["status"]['modified'].push(Array.from(FILES_MODIFIED.values()));
-	FILES_DETAIL["status"]['removed'].push(Array.from(FILES_REMOVED.values()));
+	FILES_DETAIL["status"]['added'] = Array.from(FILES_ADDED.values());
+	FILES_DETAIL["status"]['modified'] =Array.from(FILES_MODIFIED.values());
+	FILES_DETAIL["status"]['removed'] = Array.from(FILES_REMOVED.values());
 	FILES_DETAIL["status"]['renamed']= FILES_RENAMED;
 
 }

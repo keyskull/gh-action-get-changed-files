@@ -621,9 +621,9 @@ async function processCommitData(result) {
 		}
 	});
 
-	FILES_DETAIL["status"]['added'].push(Array.from(FILES_ADDED.values()));
-	FILES_DETAIL["status"]['modified'].push(Array.from(FILES_MODIFIED.values()));
-	FILES_DETAIL["status"]['removed'].push(Array.from(FILES_REMOVED.values()));
+	FILES_DETAIL["status"]['added'] = Array.from(FILES_ADDED.values());
+	FILES_DETAIL["status"]['modified'] =Array.from(FILES_MODIFIED.values());
+	FILES_DETAIL["status"]['removed'] = Array.from(FILES_REMOVED.values());
 	FILES_DETAIL["status"]['renamed']= FILES_RENAMED;
 
 }
@@ -7662,6 +7662,8 @@ async function getMetaDatabyUrl(url) {
     // json = err.body;
     console.log(err.body)
   }
+
+  logging('getMetaDatabyUrl', 'metadata from url: '+  json)
   return json;
 }
 
@@ -7699,7 +7701,7 @@ function unrecordedFileAction(file_name, metadata) {
     else metadata['articles'][uid]['revise_time'] = 1;
   }
   else {
-    const json = '{"' + uid + '" : {"path":"' + file_name + '"' +
+    const json = ' {"path":"' + file_name + '"' +
       ',"title": "' + file_name + '"' +
       ',"revise_time": 0 ' +
       ',"authors": [] ' +
@@ -7708,10 +7710,10 @@ function unrecordedFileAction(file_name, metadata) {
       ',"last_action": "unknown"' +
       ',"created_timestamp":' + Date.now() +
       ',"updated_timestamp":' + Date.now() +
-      "}}";
+      "}";
     logging('UnrecordedFileAction', 'created file json detail: ' + json);
 
-    metadata['articles'] = JSON.parse(json);
+    metadata['articles'][uid] = JSON.parse(json);
 
     logging('UnrecordedFileAction', 'recorded a created file: ' + file_name);
   }
@@ -7751,8 +7753,11 @@ function createdAction(files_detail, metadata) {
 
 function modifiedAction(files_detail, metadata) {
   logging('modifiedAction', 'started a modifiedAction');
+  logging('modifiedAction', 'files_detail["status"]["modified"]: ' + files_detail['status']["modified"]);
 
   files_detail['status']["modified"].forEach(function (value) {
+    logging('modifiedAction', 'recorded a modified file: ' + value);
+
     if (value != '') {
 
       const uid = md5(value);
