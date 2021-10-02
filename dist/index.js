@@ -554,7 +554,7 @@ function isRenamed(file) {
 async function outputResults() {
 	debug('FILES', Array.from(FILES.values()));
 
-	const data = metadata.generateMetaData(FILES_DETAIL, 'https://raw.githubusercontent.com/' + args.owner + '/' + args.repo + '/metadata/metadata.json');
+	const data = await metadata.generateMetaData(FILES_DETAIL, 'https://raw.githubusercontent.com/' + args.owner + '/' + args.repo + '/metadata/metadata.json');
 
 	core.setOutput('all', toJSON(Array.from(FILES.values()), 0));
 	core.setOutput('detail', toJSON(FILES_DETAIL));
