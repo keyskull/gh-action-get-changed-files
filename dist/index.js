@@ -7694,7 +7694,7 @@ function unrecordedFileAction(file_name, metadata) {
 
   logging('UnrecordedFileAction', 'created file name: ' + file_name);
   const uid = md5(file_name);
-  if (metadata['articles'][uid]) {
+  if (metadata['articles'].hasOwnProperty(uid)) {
     if (revise_time > -1) metadata['articles'][uid]['revise_time'] = revise_time + 1;
     else metadata['articles'][uid]['revise_time'] = 1;
   }
@@ -7756,12 +7756,9 @@ function modifiedAction(files_detail, metadata) {
     if (value != '') {
 
       const uid = md5(value);
+      logging('modifiedAction', 'metdata: '+ JSON.stringify(metadata));
 
-      if (!metadata['articles'][uid]) {
-        logging('modifiedAction', 'unknown modified action file: ' + value);
-        unrecordedFileAction(value, metadata)
-      }
-      else {
+      if (metadata['articles'].hasOwnProperty(uid)) {
         const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
         if (revise_time > -1)
           metadata['articles'][uid]['revise_time'] = revise_time + 1;
@@ -7769,6 +7766,10 @@ function modifiedAction(files_detail, metadata) {
         metadata['articles'][uid]['updated_timestamp'] = Date.now();
         metadata['articles'][uid]['last_action'] = "modified";
         logging('modifiedAction', 'recorded a modified file: ' + value);
+      }
+      else {
+        logging('modifiedAction', 'unknown modified action file: ' + value);
+        unrecordedFileAction(value, metadata)
       }
     }
   });
@@ -7783,7 +7784,7 @@ function removedAction(files_detail, metadata) {
     if (value != '') {
 
       const uid = md5(value);
-      if (metadata['articles'][uid]) {
+      if (metadata['articles'].hasOwnProperty(uid)) {
         metadata['articles'][uid]['last_action'] = 'removed';
         metadata['articles'][uid]['updated_timestamp'] = Date.now();
         metadata['trash'][uid] = metadata['articles'][uid];
@@ -7808,12 +7809,8 @@ function renamedAction(files_detail, metadata) {
       logging('renamedAction', 'renamed file: '+ JSON.stringify(value['file']));
       if (value != '') {
         const uid = md5(value['file'].previous_filename);
-        if (!metadata['articles'][uid]) {
-          unrecordedFileAction(value['file'].filename, metadata);
-        }
-        else {
+        if (metadata['articles'].hasOwnProperty(uid)) {
           const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
-
           metadata['articles'][uid]['revise_time'] = revise_time + 1;
           if (!metadata['articles'][uid]['used_names']) metadata['articles'][uid]['used_names'] = new Array();
           metadata['articles'][uid]['used_names'].push(value['file'].previous_filename);
@@ -7822,6 +7819,9 @@ function renamedAction(files_detail, metadata) {
           metadata['articles'][uuidv5(value['file'].filename, uuidv5.URL)] = metadata['articles'][uid];
           delete metadata['articles'][uid];
           logging('renamedAction', 'recorded a rename file frome' + value['file'].previous_filename + 'to' + value['file'].filename);
+        }
+        else {
+          unrecordedFileAction(value['file'].filename, metadata);
         }
       }
     });
