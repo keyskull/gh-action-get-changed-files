@@ -167,7 +167,7 @@ function renamedAction(files_detail, metadata) {
         const uid = md5(value['file'].previous_filename);
         if (metadata['articles'][uid]) {
 
-          const pathArray = value['file'].file_name.split('/');
+          const pathArray = value['file'].filename.split('/');
           const title = pathArray[pathArray.length - 1].split('.');
           metadata['articles'][uid]['title'] = title[0];
 
