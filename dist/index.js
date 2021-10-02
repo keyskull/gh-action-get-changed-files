@@ -7684,7 +7684,7 @@ async function exiamineMetaData(metadata) {
   if (!metadata['logging']) metadata['logging'] = new Array();
 
   logging('exiamineMetaData', 'exiamined metadata structure.');
-  return metadata;
+  return JSON.parse(metadata);
 }
 
 
@@ -7694,7 +7694,7 @@ function unrecordedFileAction(file_name, metadata) {
 
   logging('UnrecordedFileAction', 'created file name: ' + file_name);
   const uid = md5(file_name);
-  if (metadata['articles'].hasOwnProperty(uid)) {
+  if (metadata['articles'][uid]) {
     if (revise_time > -1) metadata['articles'][uid]['revise_time'] = revise_time + 1;
     else metadata['articles'][uid]['revise_time'] = 1;
   }
@@ -7756,9 +7756,8 @@ function modifiedAction(files_detail, metadata) {
     if (value != '') {
 
       const uid = md5(value);
-      logging('modifiedAction', 'metdata: '+ JSON.stringify(metadata));
 
-      if (metadata['articles'].hasOwnProperty(uid)) {
+      if (metadata['articles'][uid]) {
         const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
         if (revise_time > -1)
           metadata['articles'][uid]['revise_time'] = revise_time + 1;
@@ -7768,6 +7767,8 @@ function modifiedAction(files_detail, metadata) {
         logging('modifiedAction', 'recorded a modified file: ' + value);
       }
       else {
+        logging('modifiedAction', 'metdata: '+ JSON.stringify(metadata));
+
         logging('modifiedAction', 'unknown modified action file: ' + value);
         unrecordedFileAction(value, metadata)
       }
@@ -7784,7 +7785,7 @@ function removedAction(files_detail, metadata) {
     if (value != '') {
 
       const uid = md5(value);
-      if (metadata['articles'].hasOwnProperty(uid)) {
+      if (metadata['articles'][uid]) {
         metadata['articles'][uid]['last_action'] = 'removed';
         metadata['articles'][uid]['updated_timestamp'] = Date.now();
         metadata['trash'][uid] = metadata['articles'][uid];
@@ -7809,7 +7810,7 @@ function renamedAction(files_detail, metadata) {
       logging('renamedAction', 'renamed file: '+ JSON.stringify(value['file']));
       if (value != '') {
         const uid = md5(value['file'].previous_filename);
-        if (metadata['articles'].hasOwnProperty(uid)) {
+        if (metadata['articles'][uid]) {
           const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
           metadata['articles'][uid]['revise_time'] = revise_time + 1;
           if (!metadata['articles'][uid]['used_names']) metadata['articles'][uid]['used_names'] = new Array();
