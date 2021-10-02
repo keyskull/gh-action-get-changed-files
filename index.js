@@ -1,19 +1,30 @@
 // External Dependencies
-const fs     = require('fs');
+const fs = require('fs');
 const github = require('@actions/github');
-const core   = require('@actions/core');
+const core = require('@actions/core');
+const metadata = require('./metadata')
+
 
 const context = github.context;
-const repo    = context.payload.repository;
-const owner   = repo.owner;
+const repo = context.payload.repository;
+const owner = repo.owner;
 
-const FILES          = new Set();
-const FILES_ADDED    = new Set();
+const FILES = new Set();
+const FILES_ADDED = new Set();
 const FILES_MODIFIED = new Set();
-const FILES_REMOVED  = new Set();
-const FILES_RENAMED  = new Set();
+const FILES_REMOVED = new Set();
+const FILES_RENAMED = new Set();
+const FILES_DETAIL = {
+	"timestamp": Date.now(),
+	"status": {
+		"added": new Array(),
+		"modified": new Array(),
+		"removed": new Array(),
+		"renamed": new Array()
+	}
+};
 
-const gh   = github.getOctokit(core.getInput('token'));
+const gh = github.getOctokit(core.getInput('token'));
 const args = { owner: owner.name || owner.login, repo: repo.name };
 
 
@@ -38,22 +49,22 @@ async function getCommits() {
 
 	debug('Getting commits...');
 
-	switch(context.eventName) {
+	switch (context.eventName) {
 		case 'push':
 			commits = context.payload.commits;
-		break;
+			break;
 
 		case 'pull_request':
 			const url = context.payload.pull_request.commits_url;
 
 			commits = await gh.paginate(`GET ${url}`, args);
-		break;
+			break;
 
 		default:
 			info('You are using this action on an event for which it has not been tested. Only the "push" and "pull_request" events are officially supported.');
 
 			commits = [];
-		break;
+			break;
 	}
 
 	return commits;
@@ -82,31 +93,42 @@ function isRenamed(file) {
 async function outputResults() {
 	debug('FILES', Array.from(FILES.values()));
 
+	const data = metadata.generateMetaData(FILES_DETAIL, 'https://raw.githubusercontent.com/' + args.owner + '/' + args.repo + '/metadata/metadata.json');
+
 	core.setOutput('all', toJSON(Array.from(FILES.values()), 0));
+	core.setOutput('detail', toJSON(FILES_DETAIL));
 	core.setOutput('added', toJSON(Array.from(FILES_ADDED.values()), 0));
 	core.setOutput('modified', toJSON(Array.from(FILES_MODIFIED.values()), 0));
 	core.setOutput('removed', toJSON(Array.from(FILES_REMOVED.values()), 0));
 	core.setOutput('renamed', toJSON(Array.from(FILES_RENAMED.values()), 0));
+	core.setOutput('metadata', toJSON(data));
 
 	fs.writeFileSync(`${process.env.HOME}/files.json`, toJSON(Array.from(FILES.values())), 'utf-8');
+	fs.writeFileSync(`${process.env.HOME}/files_detail.json`, toJSON(FILES_DETAIL), 'utf-8');
 	fs.writeFileSync(`${process.env.HOME}/files_added.json`, toJSON(Array.from(FILES_ADDED.values())), 'utf-8');
 	fs.writeFileSync(`${process.env.HOME}/files_modified.json`, toJSON(Array.from(FILES_MODIFIED.values())), 'utf-8');
 	fs.writeFileSync(`${process.env.HOME}/files_removed.json`, toJSON(Array.from(FILES_REMOVED.values())), 'utf-8');
 	fs.writeFileSync(`${process.env.HOME}/files_renamed.json`, toJSON(Array.from(FILES_RENAMED.values())), 'utf-8');
+	fs.writeFileSync(`${process.env.HOME}/metadata.json`, toJSON(data), 'utf-8');
 
 	// Backwards Compatability
 	core.setOutput('deleted', toJSON(Array.from(FILES_REMOVED.values()), 0));
 	fs.writeFileSync(`${process.env.HOME}/files_deleted.json`, toJSON(Array.from(FILES_REMOVED.values())), 'utf-8');
+
+
 }
 
 async function processCommitData(result) {
 	debug('Processing API Response', result);
 
-	if (! result || ! result.data) {
+	if (!result || !result.data) {
 		return;
 	}
 
+
 	result.data.files.forEach(file => {
+		debug('File:', file);
+
 		(isAdded(file) || isModified(file) || isRenamed(file)) && FILES.add(file.filename);
 
 		if (isAdded(file)) {
@@ -117,7 +139,7 @@ async function processCommitData(result) {
 		}
 
 		if (isRemoved(file)) {
-			if (! FILES_ADDED.has(file.filename)) {
+			if (!FILES_ADDED.has(file.filename)) {
 				FILES_REMOVED.add(file.filename);
 			}
 
@@ -137,16 +159,22 @@ async function processCommitData(result) {
 			processRenamedFile(file.previous_filename, file.filename);
 		}
 	});
+
+	FILES_DETAIL["status"]['added'].push(Array.from(FILES_ADDED.values()));
+	FILES_DETAIL["status"]['modified'].push(Array.from(FILES_MODIFIED.values()));
+	FILES_DETAIL["status"]['removed'].push(Array.from(FILES_REMOVED.values()));
+	FILES_DETAIL["status"]['renamed'].push(Array.from(FILES_RENAMED.values()));
+
 }
 
 function processRenamedFile(prev_file, new_file) {
 	FILES.delete(prev_file) && FILES.add(new_file);
 	FILES_ADDED.delete(prev_file) && FILES_ADDED.add(new_file);
 	FILES_MODIFIED.delete(prev_file) && FILES_MODIFIED.add(new_file);
-	FILES_RENAMED.add(new_file);
+	FILES_RENAMED.add({ file: { filename: new_file, previous_filename: prev_file } });
 }
 
-function toJSON(value, pretty=true) {
+function toJSON(value, pretty = true) {
 	return pretty
 		? JSON.stringify(value, null, 4)
 		: JSON.stringify(value);
@@ -156,9 +184,13 @@ function toJSON(value, pretty=true) {
 debug('context', context);
 debug('args', args);
 
+// getCommits()
+// test //gh.paginate(`GET /repos/{owner}/{repo}/commits/{commit_sha}`, args)
+
 getCommits().then(commits => {
 	// Exclude merge commits
-	commits = commits.filter(c => ! c.parents || 1 === c.parents.length);
+
+	commits = commits.filter(c => !c.parents || 1 === c.parents.length);
 
 	if ('push' === context.eventName) {
 		commits = commits.filter(c => c.distinct);
