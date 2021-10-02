@@ -7819,10 +7819,17 @@ function renamedAction(files_detail, metadata) {
       if (value != '') {
         const uid = md5(value['file'].previous_filename);
         if (metadata['articles'][uid]) {
+
+          const pathArray = value['file'].file_name.split('/');
+          const title = pathArray[pathArray.length - 1].split('.');
+          metadata['articles'][uid]['title'] = title[0];
+
           const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
           metadata['articles'][uid]['revise_time'] = revise_time + 1;
+
           if (!metadata['articles'][uid]['used_names']) metadata['articles'][uid]['used_names'] = new Array();
           metadata['articles'][uid]['used_names'].push(value['file'].previous_filename);
+          
           metadata['articles'][uid]['updated_timestamp'] = Date.now();
 
           metadata['articles'][uuidv5(value['file'].filename, uuidv5.URL)] = metadata['articles'][uid];
