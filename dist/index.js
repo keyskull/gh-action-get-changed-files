@@ -7697,6 +7697,7 @@ function unrecordedFileAction(file_name, metadata) {
   logging('UnrecordedFileAction', 'created file name: ' + file_name);
   const uid = md5(file_name);
   if (metadata['articles'][uid]) {
+    const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
     if (revise_time > -1) metadata['articles'][uid]['revise_time'] = revise_time + 1;
     else metadata['articles'][uid]['revise_time'] = 1;
   }
