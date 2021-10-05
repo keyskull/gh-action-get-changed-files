@@ -23,6 +23,8 @@ const FILES_DETAIL = {
 		"renamed": new Array()
 	}
 };
+const GIT_INFO = "";
+
 
 const gh = github.getOctokit(core.getInput('token'));
 const args = { owner: owner.name || owner.login, repo: repo.name };
@@ -36,6 +38,9 @@ function fetchCommitData(commit) {
 	args.ref = commit.id || commit.sha;
 
 	debug('Calling gh.repos.getCommit() with args', args)
+
+	
+	GIT_INFO =args.ref;
 
 	return gh.repos.getCommit(args);
 }
@@ -94,6 +99,7 @@ async function outputResults() {
 	debug('FILES', Array.from(FILES.values()));
 
 	const data = await metadata.generateMetaData(FILES_DETAIL, 'https://raw.githubusercontent.com/' + args.owner + '/' + args.repo + '/metadata/metadata.json');
+	data['commit'] = GIT_INFO;
 
 	core.setOutput('all', toJSON(Array.from(FILES.values()), 0));
 	core.setOutput('detail', toJSON(FILES_DETAIL));
@@ -102,6 +108,7 @@ async function outputResults() {
 	core.setOutput('removed', toJSON(Array.from(FILES_REMOVED.values()), 0));
 	core.setOutput('renamed', toJSON(Array.from(FILES_RENAMED.values()), 0));
 	core.setOutput('metadata', toJSON(data));
+	core.setOutput('commit', GIT_INFO);
 
 	fs.writeFileSync(`${process.env.HOME}/files.json`, toJSON(Array.from(FILES.values())), 'utf-8');
 	fs.writeFileSync(`${process.env.HOME}/files_detail.json`, toJSON(FILES_DETAIL), 'utf-8');
@@ -110,6 +117,7 @@ async function outputResults() {
 	fs.writeFileSync(`${process.env.HOME}/files_removed.json`, toJSON(Array.from(FILES_REMOVED.values())), 'utf-8');
 	fs.writeFileSync(`${process.env.HOME}/files_renamed.json`, toJSON(Array.from(FILES_RENAMED.values())), 'utf-8');
 	fs.writeFileSync(`${process.env.HOME}/metadata.json`, toJSON(data), 'utf-8');
+	fs.writeFileSync(`${process.env.HOME}/commit`, GIT_INFO, 'utf-8');
 
 	// Backwards Compatability
 	core.setOutput('deleted', toJSON(Array.from(FILES_REMOVED.values()), 0));
