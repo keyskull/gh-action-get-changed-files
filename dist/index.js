@@ -484,7 +484,7 @@ const FILES_DETAIL = {
 		"renamed": new Array()
 	}
 };
-const GIT_INFO = "";
+var GIT_INFO = "";
 
 
 const gh = github.getOctokit(core.getInput('token'));
