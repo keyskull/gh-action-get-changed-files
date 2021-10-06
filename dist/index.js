@@ -7689,7 +7689,7 @@ function logging(eventName, messages,level) {
 
 async function exiamineMetaData(metadata) {
   if (!metadata['version']) metadata['version'] = 'v1';
-  if (!metadata['articles']) metadata['articles'] = new Array();
+  if (!metadata['files']) metadata['files'] = new Array();
   if (!metadata['trash']) metadata['trash'] = new Array();
   if (!metadata['logging']) metadata['logging'] = new Array();
 
@@ -7704,11 +7704,11 @@ function unrecordedFileAction(file_name, metadata) {
 
   logging('UnrecordedFileAction', 'created file name: ' + file_name);
   const uid = md5(file_name);
-  if (metadata['articles'][uid]) {
-    const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
-    if (revise_time > -1) metadata['articles'][uid]['revise_time'] = revise_time + 1;
-    else metadata['articles'][uid]['revise_time'] = 1;
-    metadata['articles'][uid]['last_action'] = "unknown";
+  if (metadata['files'][uid]) {
+    const revise_time = Number.parseInt(metadata['files'][uid]['revise_time']);
+    if (revise_time > -1) metadata['files'][uid]['revise_time'] = revise_time + 1;
+    else metadata['files'][uid]['revise_time'] = 1;
+    metadata['files'][uid]['last_action'] = "unknown";
   }
   else {
     const pathArray = file_name.split('/');
@@ -7725,7 +7725,7 @@ function unrecordedFileAction(file_name, metadata) {
       "}";
     logging('UnrecordedFileAction', 'created file json detail: ' + json);
 
-    metadata['articles'][uid] = JSON.parse(json);
+    metadata['files'][uid] = JSON.parse(json);
 
     logging('UnrecordedFileAction', 'recorded a created file: ' + file_name);
   }
@@ -7755,7 +7755,7 @@ function createdAction(files_detail, metadata) {
         "}}";
       logging('createdAction', 'created file json detail: ' + json);
 
-      metadata['articles'] = JSON.parse(json);
+      metadata['files'] = JSON.parse(json);
 
       logging('createdAction', 'recorded a created file: ' + value);
     }
@@ -7775,13 +7775,13 @@ function modifiedAction(files_detail, metadata) {
 
       const uid = md5(value);
 
-      if (metadata['articles'][uid]) {
-        const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
+      if (metadata['files'][uid]) {
+        const revise_time = Number.parseInt(metadata['files'][uid]['revise_time']);
         if (revise_time > -1)
-          metadata['articles'][uid]['revise_time'] = revise_time + 1;
-        else metadata['articles'][uid]['revise_time'] = 1;
-        metadata['articles'][uid]['updated_timestamp'] = Date.now();
-        metadata['articles'][uid]['last_action'] = "modified";
+          metadata['files'][uid]['revise_time'] = revise_time + 1;
+        else metadata['files'][uid]['revise_time'] = 1;
+        metadata['files'][uid]['updated_timestamp'] = Date.now();
+        metadata['files'][uid]['last_action'] = "modified";
         logging('modifiedAction', 'recorded a modified file: ' + value);
       }
       else {
@@ -7803,11 +7803,11 @@ function removedAction(files_detail, metadata) {
     if (value != '') {
 
       const uid = md5(value);
-      if (metadata['articles'][uid]) {
-        metadata['articles'][uid]['last_action'] = 'removed';
-        metadata['articles'][uid]['updated_timestamp'] = Date.now();
-        metadata['trash'][uid] = metadata['articles'][uid];
-        delete metadata['articles'][uid];
+      if (metadata['files'][uid]) {
+        metadata['files'][uid]['last_action'] = 'removed';
+        metadata['files'][uid]['updated_timestamp'] = Date.now();
+        metadata['trash'][uid] = metadata['files'][uid];
+        delete metadata['files'][uid];
         logging('removedAction', 'recorded a removed file: ' + value);
       } else {
         logging('removedAction', "doesn't find a file: " + value);
@@ -7828,29 +7828,29 @@ function renamedAction(files_detail, metadata) {
       logging('renamedAction', 'renamed file: '+ JSON.stringify(value['file']));
       if (value != '') {
         const uid = md5(value['file'].previous_filename);
-        if (metadata['articles'][uid]) {
+        if (metadata['files'][uid]) {
 
-          metadata['articles'][uid]['path'] = value['file'].filename;
+          metadata['files'][uid]['path'] = value['file'].filename;
 
           const pathArray = value['file'].filename.split('/');
           const title = pathArray[pathArray.length - 1].split('.');
-          metadata['articles'][uid]['title'] = title[0];
+          metadata['files'][uid]['title'] = title[0];
 
-          const revise_time = Number.parseInt(metadata['articles'][uid]['revise_time']);
-          metadata['articles'][uid]['revise_time'] = revise_time + 1;
+          const revise_time = Number.parseInt(metadata['files'][uid]['revise_time']);
+          metadata['files'][uid]['revise_time'] = revise_time + 1;
 
-          if (!metadata['articles'][uid]['used_names']) metadata['articles'][uid]['used_names'] = new Array();
-          metadata['articles'][uid]['used_names'].push(value['file'].previous_filename);
+          if (!metadata['files'][uid]['used_names']) metadata['files'][uid]['used_names'] = new Array();
+          metadata['files'][uid]['used_names'].push(value['file'].previous_filename);
           
-          metadata['articles'][uid]['last_action']  = 'renamed';
+          metadata['files'][uid]['last_action']  = 'renamed';
 
-          metadata['articles'][uid]['updated_timestamp'] = Date.now();
+          metadata['files'][uid]['updated_timestamp'] = Date.now();
 
-          metadata['articles'][md5(value['file'].filename)] = metadata['articles'][uid];
+          metadata['files'][md5(value['file'].filename)] = metadata['files'][uid];
 
           
 
-          delete metadata['articles'][uid];
+          delete metadata['files'][uid];
           logging('renamedAction', 'recorded a rename file frome' + value['file'].previous_filename + 'to' + value['file'].filename);
         }
         else {
