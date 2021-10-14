@@ -6,8 +6,8 @@ const metadata = require('./metadata')
 
 
 const context = github.context;
-// const repo = context.payload.repository;
-// const owner = repo.owner;
+const repo = context.payload.repository;
+const owner = repo.owner;
 
 const FILES = new Set();
 const FILES_ADDED = new Set();

@@ -467,8 +467,8 @@ const metadata = __webpack_require__(727)
 
 
 const context = github.context;
-// const repo = context.payload.repository;
-// const owner = repo.owner;
+const repo = context.payload.repository;
+const owner = repo.owner;
 
 const FILES = new Set();
 const FILES_ADDED = new Set();
