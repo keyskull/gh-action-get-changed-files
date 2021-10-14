@@ -467,8 +467,8 @@ const metadata = __webpack_require__(727)
 
 
 const context = github.context;
-const repo = context.payload.repository;
-const owner = repo.owner;
+// const repo = context.payload.repository;
+// const owner = repo.owner;
 
 const FILES = new Set();
 const FILES_ADDED = new Set();
@@ -486,10 +486,8 @@ const FILES_DETAIL = {
 };
 var GIT_INFO = "";
 
-
 const gh = github.getOctokit(core.getInput('token'));
 const args = { owner: owner.name || owner.login, repo: repo.name };
-
 
 function debug(msg, obj = null) {
 	core.debug(formatLogMessage(msg, obj));
@@ -7743,7 +7741,7 @@ function createdAction(files_detail, metadata) {
     if (value != '') {
       const pathArray = value.split('/');
       const title = pathArray[pathArray.length - 1].split('.')
-      const json = '{"' + md5(value) + '" : {"path":"' + value + '"' +
+      const json = '{"path":"' + value + '"' +
         ',"title": "' + title[0] + '"' +
         ',"revise_time": 0 ' +
         ',"authors": [] ' +
@@ -7752,10 +7750,10 @@ function createdAction(files_detail, metadata) {
         ',"last_action": "added"' +
         ',"created_timestamp":' + files_detail['timestamp'] +
         ',"updated_timestamp":' + files_detail['timestamp'] +
-        "}}";
+        "}";
       logging('createdAction', 'created file json detail: ' + json);
 
-      metadata['files'] = JSON.parse(json);
+      metadata['files'][md5(value)] = JSON.parse(json);
 
       logging('createdAction', 'recorded a created file: ' + value);
     }
@@ -7865,10 +7863,8 @@ function renamedAction(files_detail, metadata) {
 
 exports.generateMetaData = async function (files_detail, url) {
 
-  var storedMetaData = await getMetaDatabyUrl(url)
-
-
-  var result = await exiamineMetaData(storedMetaData)
+   var result = await getMetaDatabyUrl(url)
+    .then(data => exiamineMetaData(data))
     .then(data => createdAction(files_detail, data))
     .then(data => modifiedAction(data.files_detail, data.metadata))
     .then(data => renamedAction(data.files_detail, data.metadata))

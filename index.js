@@ -6,8 +6,8 @@ const metadata = require('./metadata')
 
 
 const context = github.context;
-const repo = context.payload.repository;
-const owner = repo.owner;
+// const repo = context.payload.repository;
+// const owner = repo.owner;
 
 const FILES = new Set();
 const FILES_ADDED = new Set();
@@ -25,10 +25,8 @@ const FILES_DETAIL = {
 };
 var GIT_INFO = "";
 
-
 const gh = github.getOctokit(core.getInput('token'));
 const args = { owner: owner.name || owner.login, repo: repo.name };
-
 
 function debug(msg, obj = null) {
 	core.debug(formatLogMessage(msg, obj));
