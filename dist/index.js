@@ -387,6 +387,131 @@ module.exports = windowsRelease;
 
 /***/ }),
 
+/***/ 63:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+/* @flow */
+/*::
+
+type DotenvParseOptions = {
+  debug?: boolean
+}
+
+// keys and values from src
+type DotenvParseOutput = { [string]: string }
+
+type DotenvConfigOptions = {
+  path?: string, // path to .env file
+  encoding?: string, // encoding of .env file
+  debug?: string // turn on logging for debugging purposes
+}
+
+type DotenvConfigOutput = {
+  parsed?: DotenvParseOutput,
+  error?: Error
+}
+
+*/
+
+const fs = __webpack_require__(747)
+const path = __webpack_require__(622)
+const os = __webpack_require__(87)
+
+function log (message /*: string */) {
+  console.log(`[dotenv][DEBUG] ${message}`)
+}
+
+const NEWLINE = '\n'
+const RE_INI_KEY_VAL = /^\s*([\w.-]+)\s*=\s*(.*)?\s*$/
+const RE_NEWLINES = /\\n/g
+const NEWLINES_MATCH = /\r\n|\n|\r/
+
+// Parses src into an Object
+function parse (src /*: string | Buffer */, options /*: ?DotenvParseOptions */) /*: DotenvParseOutput */ {
+  const debug = Boolean(options && options.debug)
+  const obj = {}
+
+  // convert Buffers before splitting into lines and processing
+  src.toString().split(NEWLINES_MATCH).forEach(function (line, idx) {
+    // matching "KEY' and 'VAL' in 'KEY=VAL'
+    const keyValueArr = line.match(RE_INI_KEY_VAL)
+    // matched?
+    if (keyValueArr != null) {
+      const key = keyValueArr[1]
+      // default undefined or missing values to empty string
+      let val = (keyValueArr[2] || '')
+      const end = val.length - 1
+      const isDoubleQuoted = val[0] === '"' && val[end] === '"'
+      const isSingleQuoted = val[0] === "'" && val[end] === "'"
+
+      // if single or double quoted, remove quotes
+      if (isSingleQuoted || isDoubleQuoted) {
+        val = val.substring(1, end)
+
+        // if double quoted, expand newlines
+        if (isDoubleQuoted) {
+          val = val.replace(RE_NEWLINES, NEWLINE)
+        }
+      } else {
+        // remove surrounding whitespace
+        val = val.trim()
+      }
+
+      obj[key] = val
+    } else if (debug) {
+      log(`did not match key and value when parsing line ${idx + 1}: ${line}`)
+    }
+  })
+
+  return obj
+}
+
+function resolveHome (envPath) {
+  return envPath[0] === '~' ? path.join(os.homedir(), envPath.slice(1)) : envPath
+}
+
+// Populates process.env from .env file
+function config (options /*: ?DotenvConfigOptions */) /*: DotenvConfigOutput */ {
+  let dotenvPath = path.resolve(process.cwd(), '.env')
+  let encoding /*: string */ = 'utf8'
+  let debug = false
+
+  if (options) {
+    if (options.path != null) {
+      dotenvPath = resolveHome(options.path)
+    }
+    if (options.encoding != null) {
+      encoding = options.encoding
+    }
+    if (options.debug != null) {
+      debug = true
+    }
+  }
+
+  try {
+    // specifying an encoding returns a string instead of a buffer
+    const parsed = parse(fs.readFileSync(dotenvPath, { encoding }), { debug })
+
+    Object.keys(parsed).forEach(function (key) {
+      if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
+        process.env[key] = parsed[key]
+      } else if (debug) {
+        log(`"${key}" is already defined in \`process.env\` and will not be overwritten`)
+      }
+    })
+
+    return { parsed }
+  } catch (e) {
+    return { error: e }
+  }
+}
+
+module.exports.config = config
+module.exports.parse = parse
+
+
+/***/ }),
+
 /***/ 82:
 /***/ (function(__unusedmodule, exports) {
 
@@ -465,6 +590,7 @@ const github = __webpack_require__(469);
 const core = __webpack_require__(470);
 const metadata = __webpack_require__(727)
 
+__webpack_require__(63).config();
 
 const context = github.context;
 const repo = context.payload.repository;
@@ -487,7 +613,9 @@ const FILES_DETAIL = {
 var GIT_INFO = "";
 
 const gh = github.getOctokit(core.getInput('token'));
+// const gh = github.getOctokit(process.env.TOKEN);
 const args = { owner: owner.name || owner.login, repo: repo.name };
+// const args = { owner: process.env.OWNER, repo: process.env.REPO, commit_sha: process.env.COMMIT_SHA};
 
 function debug(msg, obj = null) {
 	core.debug(formatLogMessage(msg, obj));
@@ -655,6 +783,7 @@ debug('args', args);
 // test //gh.paginate(`GET /repos/{owner}/{repo}/commits/{commit_sha}`, args)
 
 getCommits().then(commits => {
+// gh.paginate(`GET /repos/{owner}/{repo}/commits/{commit_sha}`, args).then(commits => {
 	// Exclude merge commits
 
 	commits = commits.filter(c => !c.parents || 1 === c.parents.length);
@@ -7687,8 +7816,8 @@ function logging(eventName, messages,level) {
 
 async function exiamineMetaData(metadata) {
   if (!metadata['version']) metadata['version'] = 'v1';
-  if (!metadata['files']) metadata['files'] = new Array();
-  if (!metadata['trash']) metadata['trash'] = new Array();
+  if (!metadata['files']) metadata['files'] = {};
+  if (!metadata['trash']) metadata['trash'] = {};
   if (!metadata['logging']) metadata['logging'] = new Array();
 
   logging('exiamineMetaData', 'exiamined metadata structure.');
@@ -7707,7 +7836,15 @@ function unrecordedFileAction(file_name, metadata) {
     if (revise_time > -1) metadata['files'][uid]['revise_time'] = revise_time + 1;
     else metadata['files'][uid]['revise_time'] = 1;
     metadata['files'][uid]['last_action'] = "unknown";
+  } else if (metadata['trash'][uid]) {
+    const revise_time = Number.parseInt(metadata['trash'][uid]['revise_time']);
+    if (revise_time > -1) metadata['trash'][uid]['revise_time'] = revise_time + 1;
+    else metadata['trash'][uid]['revise_time'] = 1;
+    metadata['trash'][uid]['last_action'] = "recovered";
+    metadata['files'][uid] = {};
+    metadata['files'][uid] = metadata['trash'][uid];
   }
+  
   else {
     const pathArray = file_name.split('/');
     const title = pathArray[pathArray.length - 1].split('.')
@@ -7723,6 +7860,7 @@ function unrecordedFileAction(file_name, metadata) {
       "}";
     logging('UnrecordedFileAction', 'created file json detail: ' + json);
 
+    metadata['files'][uid] = {};
     metadata['files'][uid] = JSON.parse(json);
 
     logging('UnrecordedFileAction', 'recorded a created file: ' + file_name);
@@ -7739,6 +7877,7 @@ function createdAction(files_detail, metadata) {
 
   files_detail['status']["added"].forEach(function (value) {
     if (value != '') {
+      const uid = md5(value);
       const pathArray = value.split('/');
       const title = pathArray[pathArray.length - 1].split('.')
       const json = '{"path":"' + value + '"' +
@@ -7753,7 +7892,8 @@ function createdAction(files_detail, metadata) {
         "}";
       logging('createdAction', 'created file json detail: ' + json);
 
-      metadata['files'][md5(value)] = JSON.parse(json);
+      metadata['files'][uid] = {};
+      metadata['files'][uid] = JSON.parse(json);
 
       logging('createdAction', 'recorded a created file: ' + value);
     }
@@ -7802,13 +7942,19 @@ function removedAction(files_detail, metadata) {
 
       const uid = md5(value);
       if (metadata['files'][uid]) {
+        const revise_time = Number.parseInt(metadata['files'][uid]['revise_time']);
         metadata['files'][uid]['last_action'] = 'removed';
+        if (revise_time > -1)
+          metadata['files'][uid]['revise_time'] = revise_time + 1;
+        else metadata['files'][uid]['revise_time'] = 1;
         metadata['files'][uid]['updated_timestamp'] = Date.now();
+        metadata['trash'][uid] = {};
         metadata['trash'][uid] = metadata['files'][uid];
+        logging('removedAction', 'metadata["trash"]: ' + JSON.stringify(metadata['trash'][uid]));
         delete metadata['files'][uid];
         logging('removedAction', 'recorded a removed file: ' + value);
       } else {
-        logging('removedAction', "doesn't find a file: " + value);
+        logging('removedAction', "doesn't able to find the file: " + value);
         unrecordedFileAction(value, metadata) 
       }
 
@@ -7844,7 +7990,9 @@ function renamedAction(files_detail, metadata) {
 
           metadata['files'][uid]['updated_timestamp'] = Date.now();
 
-          metadata['files'][md5(value['file'].filename)] = metadata['files'][uid];
+          const uid2= md5(value['file'].filename);
+          metadata['files'][uid2] = {};
+          metadata['files'][uid2] = metadata['files'][uid];
 
           
 

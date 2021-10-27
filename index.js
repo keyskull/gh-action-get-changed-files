@@ -4,6 +4,7 @@ const github = require('@actions/github');
 const core = require('@actions/core');
 const metadata = require('./metadata')
 
+require('dotenv').config();
 
 const context = github.context;
 const repo = context.payload.repository;
@@ -26,7 +27,9 @@ const FILES_DETAIL = {
 var GIT_INFO = "";
 
 const gh = github.getOctokit(core.getInput('token'));
+// const gh = github.getOctokit(process.env.TOKEN);
 const args = { owner: owner.name || owner.login, repo: repo.name };
+// const args = { owner: process.env.OWNER, repo: process.env.REPO, commit_sha: process.env.COMMIT_SHA};
 
 function debug(msg, obj = null) {
 	core.debug(formatLogMessage(msg, obj));
@@ -194,6 +197,7 @@ debug('args', args);
 // test //gh.paginate(`GET /repos/{owner}/{repo}/commits/{commit_sha}`, args)
 
 getCommits().then(commits => {
+// gh.paginate(`GET /repos/{owner}/{repo}/commits/{commit_sha}`, args).then(commits => {
 	// Exclude merge commits
 
 	commits = commits.filter(c => !c.parents || 1 === c.parents.length);
